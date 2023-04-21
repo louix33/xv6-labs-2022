@@ -75,6 +75,48 @@ int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+  uint64 va;  // starting va
+  int n;      // number of pages to check
+  uint64 uresult; // user va to store result
+
+  argaddr(0, &va);
+  argint(1, &n);
+  argaddr(2, &uresult);
+  va = PGROUNDDOWN(va);
+
+  // check illegal args
+  if (n <= 0 || n > 64)
+  {
+    return -1;
+  }
+  if (va + (n-1) * PGSIZE >= MAXVA || uresult >= MAXVA)
+  {
+    return -1;
+  }
+
+  uint64 kresult = 0;
+  struct proc *p = myproc();
+  pte_t *pte;
+
+  for (int i = 0; i < n; i++)
+  {
+    pte = walk(p->pagetable, va, 0);
+    if (pte == 0 || !(*pte & PTE_V))
+    {
+      return -2;
+    }
+    
+    if (*pte & PTE_A)
+    {
+      kresult = kresult | (1 << i);
+      *pte &= ~PTE_A; // clear PTE_A
+    }
+
+    va += PGSIZE;
+  }
+
+  copyout(p->pagetable, uresult, (char *)&kresult, sizeof(kresult));
+
   return 0;
 }
 #endif
