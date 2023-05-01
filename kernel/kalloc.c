@@ -23,22 +23,14 @@ struct {
   struct run *freelist;
 } kmem[NCPU];
 
-char *kmem_names[] = {
-  "kmem0",
-  "kmem1",
-  "kmem2",
-  "kmem3",
-  "kmem4",
-  "kmem5",
-  "kmem6",
-  "kmem7",
-};
+char kmem_names[NCPU][7];
 
 void
 kinit()
 {
   for (int i = 0; i < NCPU; i++)
   {
+    snprintf(kmem_names[i], 6, "kmem%d", i);
     initlock(&kmem[i].lock, kmem_names[i]);
   }
   freerange(end, (void*)PHYSTOP);
@@ -69,7 +61,10 @@ kfree(void *pa)
   memset(pa, 1, PGSIZE);
 
   r = (struct run*)pa;
-  int nc = ((pa - (void *)end) / PGSIZE) % NCPU;
+  // int nc = ((pa - (void *)end) / PGSIZE) % NCPU;
+  push_off();
+  int nc = cpuid();
+  pop_off();
 
   acquire(&kmem[nc].lock);
   r->next = kmem[nc].freelist;
@@ -84,7 +79,10 @@ void *
 kalloc(void)
 {
   struct run *r;
+  
+  push_off();
   int nc = cpuid();
+  pop_off();
 
   acquire(&kmem[nc].lock);
   r = kmem[nc].freelist;
