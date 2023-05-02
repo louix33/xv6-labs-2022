@@ -23,14 +23,14 @@ struct {
   struct run *freelist;
 } kmem[NCPU];
 
-char kmem_names[NCPU][7];
+static char kmem_names[NCPU][7];
 
 void
 kinit()
 {
   for (int i = 0; i < NCPU; i++)
   {
-    snprintf(kmem_names[i], 6, "kmem%d", i);
+    snprintf(kmem_names[i], sizeof(kmem_names[0]), "kmem%d", i);
     initlock(&kmem[i].lock, kmem_names[i]);
   }
   freerange(end, (void*)PHYSTOP);
